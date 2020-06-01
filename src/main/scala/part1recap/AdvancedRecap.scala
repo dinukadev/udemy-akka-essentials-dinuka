@@ -59,7 +59,7 @@ object AdvancedRecap extends App {
     def greet = s"Hi, my name is $name"
   }
 
-  implicit def fromStringToPerson(string: String): Person = Person(String)
+  implicit def fromStringToPerson(string: String): Person = Person(string)
 
   "Peter".greet // fromStringToPerson("Peter").greet - automatically by the compiler
 
