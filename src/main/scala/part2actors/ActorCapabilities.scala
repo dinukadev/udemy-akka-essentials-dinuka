@@ -11,7 +11,7 @@ object ActorCapabilities extends App {
       case number: Int => println(s"[simple actor] I have received a number $number")
       case SpecialMessage(contents) => println(s"[simple actor] I have received something special : $contents")
       //self ! content means it sends a message back to the same actor which matches the first case
-      case SendMessageToYoutself(content) => self ! content
+      case SendMessageToYourself(content) => self ! content
       case SayHiTo(ref) => ref ! "Hi!"
       case WirelessPhoneMessage(content, ref) => ref forward (content + "s")
     }
@@ -32,9 +32,9 @@ object ActorCapabilities extends App {
 
   simpleActor ! SpecialMessage("some special content")
 
-  case class SendMessageToYoutself(content: String)
+  case class SendMessageToYourself(content: String)
 
-  simpleActor ! SendMessageToYoutself("I am an actor")
+  simpleActor ! SendMessageToYourself("I am an actor")
 
 
   // actors can reply to messages
