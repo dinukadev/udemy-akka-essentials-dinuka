@@ -38,9 +38,16 @@ object ChildActors extends App {
 
   val system = ActorSystem("childActor")
 
-  val parentActor = system.actorOf(Props[Parent],"parent")
+  val parentActor = system.actorOf(Props[Parent], "parent")
   parentActor ! CreateChild("child")
   parentActor ! TellChild("hey kid")
 
+
+  /**
+    * Actor selection
+    */
+
+  val childSelection = system.actorSelection("/user/parent/child")
+  childSelection ! "I found you!"
 
 }
