@@ -4,7 +4,7 @@ package part2actors
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.event.Logging
 
-object ActorLogging extends App {
+object ActorLoggingExample extends App {
 
   class SimpleLoggingActor extends Actor {
     val logger = Logging(context.system, this)
