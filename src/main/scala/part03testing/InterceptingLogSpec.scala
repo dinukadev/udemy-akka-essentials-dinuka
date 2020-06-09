@@ -17,11 +17,19 @@ class InterceptingLogSpec extends TestKit(ActorSystem("InterceptingLogSpec", Con
 
   val item = "Rock the JVM Akka course"
   val creditCard = "111-111-11-11"
+  val invalidCreditCard = "00000";
   "A checkout flow" should {
     "correctly log the dispath of an order" in {
       EventFilter.info(pattern = s"Order [0-9]+ for item $item has been dispatched.", occurrences = 1) intercept {
         val checkoutRef = system.actorOf(Props[CheckoutActor])
         checkoutRef ! Checkout(item, creditCard)
+      }
+    }
+
+    "payment denied" in {
+      EventFilter[RuntimeException](occurrences = 1) intercept {
+        val checkoutRef = system.actorOf(Props[CheckoutActor])
+        checkoutRef ! Checkout(item, invalidCreditCard)
       }
     }
   }
@@ -59,6 +67,9 @@ object InterceptingLogSpec {
       case PaymentAccepted =>
         fullfillmentManager ! DispathOrder(item)
         context.become(pendingFullfillment(item))
+
+      case PaymentDenied =>
+        throw new RuntimeException("I can't handle this")
     }
 
     def pendingFullfillment(item: String): Receive = {
