@@ -1,13 +1,16 @@
 package part03testing
 
 import akka.actor.{Actor, ActorSystem, Props}
-import akka.testkit.{ImplicitSender, TestKit}
+import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import part03testing.TimeAssertionSpec.{WorkResult, WorkerActor}
 
 import scala.concurrent.duration._
 import scala.util.Random
-class TimedAssertionSpect extends TestKit(ActorSystem("TimedAssertionSpec"))
+
+class TimedAssertionSpect extends
+  TestKit(ActorSystem("TimedAssertionSpec", ConfigFactory.load().getConfig("specialTimedAssertionsConfig")))
   with ImplicitSender
   with WordSpecLike
   with BeforeAndAfterAll {
@@ -28,14 +31,21 @@ class TimedAssertionSpect extends TestKit(ActorSystem("TimedAssertionSpec"))
 
     "reply with valid work at a reasonable cadence" in {
       within(1 second) {
-        workerActor !  "workSequence"
-       val results: Seq[Int] =  receiveWhile[Int](max = 2 seconds, idle=500 millis, messages = 10){
+        workerActor ! "workSequence"
+        val results: Seq[Int] = receiveWhile[Int](max = 2 seconds, idle = 500 millis, messages = 10) {
           case WorkResult(result) => result
         }
         assert(results.sum > 5)
       }
 
+    }
 
+    "reply to a test probe in a timely manner" in {
+      within((1 second)) {
+        val probe = TestProbe()
+        probe.send(workerActor, "work")
+        probe.expectMsg(WorkResult(42))
+      }
     }
   }
 }
