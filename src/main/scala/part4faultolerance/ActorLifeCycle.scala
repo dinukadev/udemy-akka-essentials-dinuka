@@ -19,10 +19,10 @@ object ActorLifeCycle extends App {
 
   val system = ActorSystem("LifecycleDemo")
 
-  //  val parent = system.actorOf(Props[LifecycleActor], "parent")
-  //  parent ! StartChild
-  //
-  //  parent ! PoisonPill
+    val parent = system.actorOf(Props[LifecycleActor], "parent")
+    parent ! StartChild
+
+    parent ! PoisonPill
 
   /**
     * restart
