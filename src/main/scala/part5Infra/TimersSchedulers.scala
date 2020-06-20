@@ -18,21 +18,21 @@ object TimersSchedulers extends App {
   system.log.info("Scheduling reminder for simple actor")
 
   implicit val executionContext = system.dispatcher
-//  system.scheduler.scheduleOnce(1 second) {
-//    simpleActor ! "reminder"
-//  }
-//
-//  val routine: Cancellable = system.scheduler.schedule(
-//    1 second,
-//    2 seconds){
-//    simpleActor ! "heartbeat"
-//  }
-//
-//  system.scheduler.scheduleOnce(
-//    5 seconds
-//  ){
-//    routine.cancel()
-//  }
+  system.scheduler.scheduleOnce(1 second) {
+    simpleActor ! "reminder"
+  }
+
+  val routine: Cancellable = system.scheduler.schedule(
+    1 second,
+    2 seconds){
+    simpleActor ! "heartbeat"
+  }
+
+  system.scheduler.scheduleOnce(
+    5 seconds
+  ){
+    routine.cancel()
+  }
 
   class SelfClosingActor extends Actor with ActorLogging{
     var schedule = createTimeoutWindow()
@@ -55,19 +55,19 @@ object TimersSchedulers extends App {
     }
   }
 
-//  val selfClosingActor = system.actorOf(Props[SelfClosingActor],"selfClosingActor")
-//  system.scheduler.scheduleOnce(
-//    250 millis
-//  ){
-//    selfClosingActor ! "ping"
-//  }
-//
-//  system.scheduler.scheduleOnce(
-//    2 seconds
-//  ){
-//    system.log.info("sending pong")
-//    selfClosingActor ! "pong"
-//  }
+  val selfClosingActor = system.actorOf(Props[SelfClosingActor],"selfClosingActor")
+  system.scheduler.scheduleOnce(
+    250 millis
+  ){
+    selfClosingActor ! "ping"
+  }
+
+  system.scheduler.scheduleOnce(
+    2 seconds
+  ){
+    system.log.info("sending pong")
+    selfClosingActor ! "pong"
+  }
 
 
   /**
