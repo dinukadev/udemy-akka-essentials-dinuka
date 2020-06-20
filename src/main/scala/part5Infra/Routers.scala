@@ -38,18 +38,18 @@ object Routers extends App {
   val system = ActorSystem("RoutersDemo", ConfigFactory.load().getConfig("routersDemo"))
   val master = system.actorOf(Props[Master], "masterActor")
 
-    for (i <- 1 to 10) {
-      master ! s"[$i] Hello from the world"
-    }
+  for (i <- 1 to 10) {
+    master ! s"[$i] Hello from the world"
+  }
 
   /**
     * Method 2 - Pool router
     */
 
   val poolMaster = system.actorOf(RoundRobinPool(5).props(Props[Slave]), "simplePoolMaster")
-    for (i <- 1 to 10) {
-      poolMaster ! s"[$i] Hello from the world"
-    }
+  for (i <- 1 to 10) {
+    poolMaster ! s"[$i] Hello from the world"
+  }
 
   /**
     * Method 3 from configuration
@@ -57,9 +57,9 @@ object Routers extends App {
 
   val poolMaster2 = system.actorOf(FromConfig.props(Props[Slave]), "poolMaster2") //name should match what is defined in the application.conf
 
-    for (i <- 1 to 10) {
-      poolMaster2 ! s"[$i] Hello from the world"
-    }
+  for (i <- 1 to 10) {
+    poolMaster2 ! s"[$i] Hello from the world"
+  }
 
   /**
     * Method 4 -  GROUP router
@@ -80,9 +80,14 @@ object Routers extends App {
     * Method 4 - Group router with configuration
     */
 
-  val groupMasterWithConfig = system.actorOf(FromConfig.props(),"groupMaster2")
-    for (i <- 1 to 10) {
-      groupMasterWithConfig ! s"[$i] Hello from the world"
-    }
+  val groupMasterWithConfig = system.actorOf(FromConfig.props(), "groupMaster2")
+  for (i <- 1 to 10) {
+    groupMasterWithConfig ! s"[$i] Hello from the world"
+  }
+
+  /**
+    * Special messages
+    */
+  groupMasterWithConfig ! Broadcast("hello everyone")
 }
 
