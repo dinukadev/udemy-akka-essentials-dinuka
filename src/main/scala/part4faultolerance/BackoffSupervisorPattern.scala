@@ -46,7 +46,7 @@ object BackoffSupervisorPattern extends App {
   )
 
   val simpleBackoffSupervisor = system.actorOf(simpleSupervisorProps, "simpleSupervisor")
-  simpleBackoffSupervisor ! ReadFile("src/main/resources/testfiles/important_invalid.txt")
+ simpleBackoffSupervisor ! ReadFile("src/main/resources/testfiles/important_invalid.txt")
 
   val stopSupervisorProps = BackoffSupervisor.props(
     Backoff.onStop(Props[FileBasedPersistentActor],
@@ -63,4 +63,26 @@ object BackoffSupervisorPattern extends App {
 
   val simpleStopSupervisor = system.actorOf(stopSupervisorProps,"stopSupervisor")
   simpleStopSupervisor ! ReadFile("src/main/resources/testfiles/important_invalid.txt")
+
+  class EagerFileBasedPersistentActor extends FileBasedPersistentActor {
+    override def preStart(): Unit = {
+      log.info("Eager actor starting")
+      dataSource = Source.fromFile(new File("src/main/resources/testfiles/important_invalid.txt"))
+    }
+  }
+
+  val eagerActor = system.actorOf(Props[EagerFileBasedPersistentActor],"eagerActor")
+
+  val repeatedSupervisorProps = BackoffSupervisor.props(
+    Backoff.onStop(
+      Props[EagerFileBasedPersistentActor],
+      "eagerSuperActor",
+      1 seconds,
+      30 seconds,
+      0.1
+    )
+  )
+
+  val repeatedActor = system.actorOf(repeatedSupervisorProps,"repeatedSupActor")
+
 }
