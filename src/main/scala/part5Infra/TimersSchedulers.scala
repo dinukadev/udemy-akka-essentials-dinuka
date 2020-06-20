@@ -1,6 +1,6 @@
 package part5Infra
 
-import akka.actor.{Actor, ActorLogging, ActorSystem, Cancellable, Props}
+import akka.actor.{Actor, ActorLogging, ActorSystem, Cancellable, Props, Timers}
 
 import scala.concurrent.duration._
 
@@ -18,20 +18,87 @@ object TimersSchedulers extends App {
   system.log.info("Scheduling reminder for simple actor")
 
   implicit val executionContext = system.dispatcher
-  system.scheduler.scheduleOnce(1 second) {
-    simpleActor ! "reminder"
+//  system.scheduler.scheduleOnce(1 second) {
+//    simpleActor ! "reminder"
+//  }
+//
+//  val routine: Cancellable = system.scheduler.schedule(
+//    1 second,
+//    2 seconds){
+//    simpleActor ! "heartbeat"
+//  }
+//
+//  system.scheduler.scheduleOnce(
+//    5 seconds
+//  ){
+//    routine.cancel()
+//  }
+
+  class SelfClosingActor extends Actor with ActorLogging{
+    var schedule = createTimeoutWindow()
+
+    def createTimeoutWindow(): Cancellable = {
+      context.system.scheduler.scheduleOnce(
+        1 second
+      ){
+        self ! "timeout"
+      }
+    }
+
+    override def receive: Receive = {
+      case "timeout" =>
+        log.info("Stopping myself")
+        context.stop(self)
+      case message =>
+        log.info(s"Received $message staying alive")
+        schedule = createTimeoutWindow()
+    }
   }
 
-  val routine: Cancellable = system.scheduler.schedule(
-    1 second,
-    2 seconds){
-    simpleActor ! "heartbeat"
+//  val selfClosingActor = system.actorOf(Props[SelfClosingActor],"selfClosingActor")
+//  system.scheduler.scheduleOnce(
+//    250 millis
+//  ){
+//    selfClosingActor ! "ping"
+//  }
+//
+//  system.scheduler.scheduleOnce(
+//    2 seconds
+//  ){
+//    system.log.info("sending pong")
+//    selfClosingActor ! "pong"
+//  }
+
+
+  /**
+    *  Timers
+    */
+
+  case object TimerKey
+  case object Start
+  case object Reminder
+  case object Stop
+  class TimerBasedSelfClosingActor extends Actor with ActorLogging with Timers{
+    timers.startSingleTimer(TimerKey, Start, 500 millis)
+    override def receive: Receive = {
+      case Start =>
+        log.info("Bootstrapping")
+        timers.startPeriodicTimer(TimerKey, Reminder, 1 second)
+      case Reminder =>
+        log.info("Reminder")
+      case Stop =>
+        log.warning("Stopping")
+        timers.cancel(TimerKey)
+        context.stop(self)
+    }
   }
+
+  val timerHeartBeatActor = system.actorOf(Props[TimerBasedSelfClosingActor],"timerActor")
 
   system.scheduler.scheduleOnce(
     5 seconds
   ){
-    routine.cancel()
+    timerHeartBeatActor ! Stop
   }
 
 }
