@@ -42,6 +42,41 @@ class FSMSpec extends TestKit(ActorSystem("FSMSPec"))
     within(1.5 seconds) {
       expectMsg(VendingError("TimedOut"))
     }
+  }
+
+  "handle the reception of partial money" in {
+    val vendingMachine = system.actorOf(Props[VendingMachine])
+    vendingMachine ! Initialize(Map("coke" -> 10), Map("coke" -> 3))
+    vendingMachine ! RequestProduct("coke")
+    expectMsg(Instruction("Please insert 3 dollars"))
+    vendingMachine ! ReceiveMoney(1)
+    expectMsg(Instruction("Please insert 2 dollars"))
+
+    within(1.5 seconds) {
+      expectMsg(VendingError("TimedOut"))
+      expectMsg(GiveBackChange(1))
+    }
+  }
+    "deliver the product if I insert all the money" in {
+      val vendingMachine = system.actorOf(Props[VendingMachine])
+      vendingMachine ! Initialize(Map("coke" -> 10), Map("coke" -> 3))
+      vendingMachine ! RequestProduct("coke")
+      expectMsg(Instruction("Please insert 3 dollars"))
+      vendingMachine ! ReceiveMoney(3)
+      expectMsg(Deliver("coke"))
+    }
+
+    "give back change and be able to request money for a new product" in {
+      val vendingMachine = system.actorOf(Props[VendingMachine])
+      vendingMachine ! Initialize(Map("coke" -> 10), Map("coke" -> 3))
+      vendingMachine ! RequestProduct("coke")
+      expectMsg(Instruction("Please insert 3 dollars"))
+      vendingMachine ! ReceiveMoney(4)
+      expectMsg(Deliver("coke"))
+      expectMsg(GiveBackChange(1))
+
+      vendingMachine ! RequestProduct("coke")
+      expectMsg(Instruction("Please insert 3 dollars"))
 
   }
 }
@@ -81,7 +116,7 @@ object FSMSpec {
         case Some(_) =>
           val price = prices(product)
           sender() ! Instruction(s"Please insert $price dollars")
-          context.become(waitForMoney(inventory, prices, product, price, startReceiveMoneyTimeoutSchedule, sender()))
+          context.become(waitForMoney(inventory, prices, product, 0, startReceiveMoneyTimeoutSchedule, sender()))
       }
     }
 
@@ -95,6 +130,21 @@ object FSMSpec {
         requester ! VendingError("TimedOut")
         if (money > 0) requester ! GiveBackChange(money)
         context.become(operational(inventory, prices))
+      case ReceiveMoney(amount) =>
+        moneyTimeoutSchedule.cancel()
+        val price = prices(product)
+        if (money + amount >= price) {
+          requester ! Deliver(product)
+          if (money + amount - price > 0) requester ! GiveBackChange(money + amount - price)
+          val newStock = inventory(product) - 1
+          val newInventory = inventory + (product -> newStock)
+          context.become(operational(newInventory, prices))
+        } else {
+          val remainingMoney = price - money - amount
+          requester ! Instruction(s"Please insert $remainingMoney dollars")
+          context.become(waitForMoney(inventory, prices, product, money + amount,
+            startReceiveMoneyTimeoutSchedule, requester))
+        }
     }
 
     implicit val executionContext: ExecutionContext = context.dispatcher
